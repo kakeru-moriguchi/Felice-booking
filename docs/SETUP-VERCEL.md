@@ -7,9 +7,8 @@
 - **必要なもの**: GitHub アカウント（`kakeru-moriguchi`）
 
 > **先に読んでください**
-> この予約システムは、GitHub の `kakeru-moriguchi/Felice-booking` リポジトリの中の
-> **`felice-booking` フォルダ**に入っています。
-> Vercel には「このフォルダを公開してね」と教える必要があります（手順3の ★）。
+> この予約システムは、GitHub の `kakeru-moriguchi/Felice-booking` リポジトリ直下に入っています。
+> Vercel の **Root Directory は空欄（リポジトリのルート）**のまま設定します（手順3の ★）。
 > 既存のFelice公式サイト（Vercel の `felice-otsuka-salon-update` プロジェクト）とは**別のプロジェクト**として作るので、
 > ホームページには一切影響しません。
 
@@ -54,9 +53,8 @@
 
 1. **Project Name** を `felice-booking` にします。
    （既存のFelice公式サイト と**違う名前**にしてください）
-2. **Root Directory** の右にある **Edit** をクリックします。
-3. フォルダの一覧から **`felice-booking`** を選び、**Continue** をクリックします。
-4. **Framework Preset** が **Next.js** になっていることを確認します。
+2. **Root Directory** は空欄（`./`）のままにします。
+3. **Framework Preset** が **Next.js** になっていることを確認します。
    `Other` になっていたら、クリックして **Next.js** を選び直します。
 
    > ⚠️ `Other` のままだと、次のエラーで公開に失敗します。
@@ -68,7 +66,7 @@
    > このプロジェクトには `vercel.json` に `"framework": "nextjs"` を書いてあるため、
    > Root Directory を正しく選べば、通常は自動で Next.js になります。
 
-5. **Build and Output Settings** と **Environment Variables** は、いまは触らなくて大丈夫です。
+4. **Build and Output Settings** と **Environment Variables** は、いまは触らなくて大丈夫です。
 
 ---
 
@@ -168,7 +166,7 @@ Google・LINEの値も、上の手順6と同じ画面で登録し、**Redeploy**
 | 症状 | 原因と対処 |
 | --- | --- |
 | `No Output Directory named "public"` で失敗する | Framework Preset が `Other` です。**Settings → Build and Deployment → Framework Preset** を `Next.js` にして Redeploy |
-| Felice公式サイトのほうが表示される | Root Directory が空欄です。**Settings → Build and Deployment → Root Directory** を `felice-booking` にして Redeploy |
+| ビルド対象が見つからない | **Settings → Build and Deployment → Root Directory** を空欄（`./`）に戻して Redeploy |
 | 環境変数を入れたのに変わらない | Redeploy していません。手順6の 5〜7 を行ってください |
 | 管理画面にログインできなくなった | `ADMIN_PASSWORD_HASH` の貼り付けミスです。手順5〜6をやり直してください |
 | 全員が急にログアウトされた | `SESSION_SECRET` を変更すると全員ログアウトします（異常ではありません） |
