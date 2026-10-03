@@ -1,0 +1,208 @@
+@import "tailwindcss";
+
+/* ==================================================================
+   美容サロンFelice 予約システム ブランドカラー
+   ------------------------------------------------------------------
+   既存Felice公式サイトと同じ配色・書体を使用しています。
+   「別のサービスに飛んだ」と感じさせないための統一です。
+
+     Brown   #514137 … 見出し・主要ボタン
+     Greige  #A48970 … 落ち着きのある補助色（小見出し・枠線）
+     Sand    #B69A7F … 小さなアクセント（区切り線）
+     Ivory   #F5F1E9 … 背景
+     Ink     #382F29 … 本文
+
+   色を調整したい場合は、この @theme ブロックの値を変更すると
+   予約システム全体に反映されます。
+   ================================================================== */
+@theme {
+  /* ------------------------------------------------------------------
+     ブラウン（深い茶）
+     見出し・主要ボタン・本文の文字色に使用します。
+     800 は本文用の「インク」色、700 がロゴ・ボタンの基本色です。
+     ------------------------------------------------------------------ */
+  --color-botanical-50: #f8f5f1;
+  --color-botanical-100: #eee7df;
+  --color-botanical-200: #ddd2c7;
+  --color-botanical-300: #c4b4a5;
+  --color-botanical-400: #a68f7d;
+  --color-botanical-500: #8b7464;
+  --color-botanical-600: #6f594b;
+  --color-botanical-700: #514137;
+  --color-botanical-800: #382f29;
+  --color-botanical-900: #29211d;
+
+  /* ------------------------------------------------------------------
+     グレージュ（やわらかな補助色）
+     小見出し・枠線・選択中の背景に使用します。
+     ------------------------------------------------------------------ */
+  --color-sage-50: #faf8f5;
+  --color-sage-100: #f0ebe5;
+  --color-sage-200: #e0d6cc;
+  --color-sage-300: #cdbdad;
+  --color-sage-400: #b7a18c;
+  --color-sage-500: #a48970;
+  --color-sage-600: #8d735d;
+  --color-sage-700: #765e4d;
+  --color-sage-800: #5f4a3d;
+
+  /* ------------------------------------------------------------------
+     サンドベージュ（小さなアクセント）
+     区切り線・強調の印にだけ、控えめに使います。
+     ------------------------------------------------------------------ */
+  --color-mustard: #b69a7f;
+  --color-mustard-light: #eadfd3;
+
+  /* ------------------------------------------------------------------
+     アイボリー（背景）
+     ------------------------------------------------------------------ */
+  --color-ivory: #f5f1e9;
+  --color-ivory-deep: #eae1d5;
+  --color-paper: #fbf9f5;
+
+  /* 状態を表す色（成功・エラー）。ブランドになじむ落ち着いた色味です */
+  --color-forest: #2f6a4f;
+  --color-forest-light: #e6f0ea;
+  --color-clay: #a2543f;
+  --color-clay-light: #f6e9e4;
+
+  /*
+    書体は既存ホームページと同じく、端末に入っている書体を使います。
+    （ウェブフォントを読み込まないので、LINEアプリ内でも表示が速く、
+      ビルド時に外部サイトへ取りに行く必要もありません）
+  */
+  --font-serif-ja: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
+  --font-sans-ja: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", "Yu Gothic",
+    "YuGothic", "Meiryo", sans-serif;
+  --font-display: Georgia, "Times New Roman", serif;
+  --font-label: Arial, "Helvetica Neue", sans-serif;
+}
+
+/* ------------------------------------------------------------------
+   ベース
+   ------------------------------------------------------------------ */
+html {
+  scroll-behavior: smooth;
+  /* iPhone で入力欄をタップしたときに文字が拡大されないようにします */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-botanical-800);
+  /* 本文は読みやすいゴシック体（ホームページの本文と同じ） */
+  font-family: var(--font-sans-ja);
+  font-feature-settings: "palt";
+  line-height: 1.9;
+  overflow-x: hidden;
+  min-height: 100dvh;
+}
+
+/* 見出しは明朝体（ホームページの見出しと同じ） */
+h1,
+h2,
+h3 {
+  font-family: var(--font-serif-ja);
+  font-weight: 500;
+}
+
+/* 入力欄の文字サイズは 16px 以上にします。
+   これを下回ると iOS Safari が自動的に画面を拡大してしまうためです。 */
+input,
+select,
+textarea {
+  font-size: 16px;
+  font-family: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 見出しの英字（ホームページの「MENU & PRICE」などと同じ雰囲気） */
+.font-display {
+  font-family: var(--font-label);
+  font-weight: 700;
+  letter-spacing: 0.24em;
+}
+
+/* Feliceのロゴ文字 */
+.font-logo {
+  font-family: var(--font-serif-ja);
+  letter-spacing: 0.08em;
+}
+
+/* ------------------------------------------------------------------
+   細い区切り線（左端だけサンドベージュ。ホームページの装飾線と同じ考え方）
+   ------------------------------------------------------------------ */
+.accent-rule {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    var(--color-mustard) 0 56px,
+    var(--color-botanical-200) 56px
+  );
+}
+
+/* フォーカスリング（キーボード操作時のみ） */
+:focus-visible {
+  outline: 2px solid var(--color-mustard);
+  outline-offset: 3px;
+}
+
+/* ------------------------------------------------------------------
+   画面下に固定するボタン用の余白（iPhone のホームバー対策）
+   ------------------------------------------------------------------ */
+.safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+/* ------------------------------------------------------------------
+   ふわりと表示させる演出
+   ------------------------------------------------------------------ */
+@keyframes salon-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.fade-up {
+  animation: salon-fade-up 0.5s ease-out both;
+}
+
+/* ------------------------------------------------------------------
+   読み込み中を示す、ゆっくりした明滅
+   ------------------------------------------------------------------ */
+@keyframes salon-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.soft-pulse {
+  animation: salon-pulse 1.6s ease-in-out infinite;
+}
+
+/* タップ時のハイライトを、ブランドに合わせた控えめな色にします */
+button,
+a {
+  -webkit-tap-highlight-color: rgba(81, 65, 55, 0.12);
+}
