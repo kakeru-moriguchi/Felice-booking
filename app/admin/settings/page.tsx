@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/Button";
 import { Loading, Notice } from "@/components/ui/Notice";
 import { apiGet, apiPut } from "@/lib/client/api";
 import { formatDateShortJa, todayJst } from "@/lib/util/datetime";
-import { MENU_CATEGORY_LABELS } from "@/lib/domain/defaults";
+import { MENU_CATEGORY_LABELS, SLOT_TYPE_LABELS } from "@/lib/domain/defaults";
 
 type DayHours = { open: string; lastStart: string; close: string };
 type ClosedDate = { date: string; reason: string };
@@ -26,6 +26,7 @@ type Settings = {
   weekdayHours: DayHours;
   holidayHours: DayHours;
   slotIntervalMin: number;
+  slotCapacities: { therapist: number; rental: number };
   bufferBeforeMin: number;
   bufferAfterMin: number;
   regularClosedWeekdays: number[];
@@ -52,6 +53,7 @@ type Menu = {
   name: string;
   description: string;
   category: "course" | "partial" | "secret";
+  slotType: "therapist" | "rental";
   durationMin: number;
   price: number;
   order: number;
@@ -71,6 +73,7 @@ type Option = {
 const CATEGORY_OPTIONS: Array<[string, string]> = (
   Object.entries(MENU_CATEGORY_LABELS) as Array<[Menu["category"], string]>
 ).map(([value, label]) => [value, label]);
+const SLOT_TYPE_OPTIONS: Array<[string, string]> = Object.entries(SLOT_TYPE_LABELS);
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 const BUFFERS = [0, 15, 30, 45, 60];
@@ -185,8 +188,30 @@ function SettingsForm({ lineEnabled }: { lineEnabled: boolean }) {
       {/* ============ 予約枠 ============ */}
       <Section
         title="予約枠と準備時間"
-        description="施術の前後に確保する時間です。設定するとその分だけ予約枠が長くなります。"
+        description="セラピスト施術とレンタル利用は別々に空きを判定します。枠数は、同じ時間帯に同時受付できる予約数です。"
       >
+        <NumberField
+          label="セラピスト枠数"
+          value={settings.slotCapacities.therapist}
+          onChange={(v) =>
+            patch({
+              slotCapacities: { ...settings.slotCapacities, therapist: v },
+            })
+          }
+          suffix="枠"
+          min={1}
+          max={20}
+        />
+        <NumberField
+          label="レンタル枠数"
+          value={settings.slotCapacities.rental}
+          onChange={(v) =>
+            patch({ slotCapacities: { ...settings.slotCapacities, rental: v } })
+          }
+          suffix="枠"
+          min={1}
+          max={20}
+        />
         <Select
           label="予約枠の刻み"
           value={String(settings.slotIntervalMin)}
@@ -609,6 +634,12 @@ function MenuEditor() {
                 />
               </div>
               <Select
+                label="使用する予約枠"
+                value={menu.slotType}
+                options={SLOT_TYPE_OPTIONS}
+                onChange={(v) => edit(index, { slotType: v as Menu["slotType"] })}
+              />
+              <Select
                 label="分類"
                 value={menu.category}
                 options={CATEGORY_OPTIONS}
@@ -647,6 +678,7 @@ function MenuEditor() {
                   name: "",
                   description: "",
                   category: "course",
+                  slotType: "therapist",
                   durationMin: 60,
                   price: 0,
                   order: (menus.length + 1) * 10,

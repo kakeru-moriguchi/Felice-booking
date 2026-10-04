@@ -27,6 +27,7 @@ type Reservation = {
   phone: string;
   menuId: string;
   menuName: string;
+  slotType: "therapist" | "rental";
   optionIds: string[];
   optionNames: string[];
   totalDurationMin: number;
@@ -152,6 +153,9 @@ function Detail({ id }: { id: string }) {
           </a>
         </Row>
         <Row label="メニュー">{reservation.menuName}</Row>
+        <Row label="予約枠">
+          {reservation.slotType === "rental" ? "レンタル枠" : "セラピスト枠"}
+        </Row>
         {reservation.optionNames.length > 0 && (
           <Row label="オプション">{reservation.optionNames.join("・")}</Row>
         )}

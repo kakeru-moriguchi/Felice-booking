@@ -15,7 +15,7 @@
  *   このファイルを編集し直す必要はありません。
  */
 
-import type { Menu, MenuCategory, Option, Settings } from "./types";
+import type { BookingSlotType, Menu, MenuCategory, Option, Settings } from "./types";
 
 /** メニューの初期値（正式メニュー未確定のため空） */
 export const DEFAULT_MENUS: Menu[] = [];
@@ -30,6 +30,11 @@ export const MENU_CATEGORY_LABELS: Record<MenuCategory, string> = {
   secret: "その他",
 };
 
+export const SLOT_TYPE_LABELS: Record<BookingSlotType, string> = {
+  therapist: "セラピスト枠",
+  rental: "レンタル枠",
+};
+
 /**
  * 動作確認用のテストメニュー
  * ------------------------------------------------------------------
@@ -42,6 +47,7 @@ export const SAMPLE_MENUS: Menu[] = [
     name: "【動作確認用】テストメニュー60分",
     description: "動作確認のための仮メニューです。管理画面から本番のメニューに置き換えてください。",
     category: "course",
+    slotType: "therapist",
     durationMin: 60,
     price: 5000,
     order: 10,
@@ -52,6 +58,7 @@ export const SAMPLE_MENUS: Menu[] = [
     name: "【動作確認用】テストメニュー120分",
     description: "最終受付・閉店時刻の判定を試すための長めの仮メニューです。",
     category: "course",
+    slotType: "therapist",
     durationMin: 120,
     price: 10000,
     order: 20,
@@ -62,6 +69,7 @@ export const SAMPLE_MENUS: Menu[] = [
     name: "【動作確認用】テストメニュー30分",
     description: "短時間メニューの表示確認用です。",
     category: "partial",
+    slotType: "rental",
     durationMin: 30,
     price: 3000,
     order: 30,
@@ -95,6 +103,9 @@ export const DEFAULT_SETTINGS: Settings = {
 
   /* 予約枠は 30 分刻み */
   slotIntervalMin: 30,
+
+  /* 同じ時間に受け付けられる予約数（管理画面から変更できます） */
+  slotCapacities: { therapist: 1, rental: 1 },
 
   /* 準備時間の初期値は 0 分（管理画面から 15/30/45/60 分に変更できます） */
   bufferBeforeMin: 0,
@@ -137,6 +148,10 @@ export function withSettingsDefaults(partial: Partial<Settings> | null): Setting
     ...partial,
     weekdayHours: { ...DEFAULT_SETTINGS.weekdayHours, ...partial.weekdayHours },
     holidayHours: { ...DEFAULT_SETTINGS.holidayHours, ...partial.holidayHours },
+    slotCapacities: {
+      ...DEFAULT_SETTINGS.slotCapacities,
+      ...partial.slotCapacities,
+    },
     notify: { ...DEFAULT_SETTINGS.notify, ...partial.notify },
   };
 }

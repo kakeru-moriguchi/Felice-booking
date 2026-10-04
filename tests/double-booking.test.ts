@@ -286,3 +286,32 @@ test("予約変更で LINE userId は変わらない", async () => {
   assert.ok(changed.ok);
   if (changed.ok) assert.equal(changed.value.after.lineUserId, r.value.lineUserId);
 });
+
+test("セラピスト枠を2枠にすると、同時刻に2件まで成立する", async () => {
+  const store = getStore();
+  const original = await store.getSettings();
+  await store.saveSettings({
+    ...original,
+    slotCapacities: { ...original.slotCapacities, therapist: 2 },
+  });
+  const date = DAYS[30];
+  const [a, b] = await Promise.all([
+    serverA.createReservation(input(date, "sample-60", "12:00", "cap-a")),
+    serverB.createReservation(input(date, "sample-60", "12:00", "cap-b")),
+  ]);
+  assert.equal(a.ok, true);
+  assert.equal(b.ok, true);
+  const third = await serverA.createReservation(input(date, "sample-60", "12:00", "cap-c"));
+  assert.equal(third.ok, false);
+  await store.saveSettings(original);
+});
+
+test("セラピスト枠とレンタル枠は同時刻にそれぞれ成立する", async () => {
+  const date = DAYS[31];
+  const [therapist, rental] = await Promise.all([
+    serverA.createReservation(input(date, "sample-60", "14:00", "type-a")),
+    serverB.createReservation(input(date, "sample-30", "14:00", "type-b")),
+  ]);
+  assert.equal(therapist.ok, true);
+  assert.equal(rental.ok, true);
+});

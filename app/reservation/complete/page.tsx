@@ -20,6 +20,7 @@ import { formatDateJa, formatPrice } from "@/lib/util/datetime";
 type Reservation = {
   id: string;
   menuName: string;
+  slotType: "therapist" | "rental";
   optionNames: string[];
   date: string;
   startTime: string;
@@ -96,6 +97,9 @@ function CompleteBody() {
                 {reservation.startTime}〜{reservation.endTime}
               </Row>
               <Row label="メニュー">{reservation.menuName}</Row>
+              <Row label="予約枠">
+                {reservation.slotType === "rental" ? "レンタル枠" : "セラピスト枠"}
+              </Row>
               {reservation.optionNames.length > 0 && (
                 <Row label="オプション">{reservation.optionNames.join("・")}</Row>
               )}

@@ -16,6 +16,7 @@ export type PublicReservation = {
   phone: string;
   menuId: string;
   menuName: string;
+  slotType: Reservation["slotType"];
   optionIds: string[];
   optionNames: string[];
   totalDurationMin: number;
@@ -35,6 +36,7 @@ export function toPublicReservation(r: Reservation): PublicReservation {
     phone: r.phone,
     menuId: r.menuId,
     menuName: r.menuName,
+    slotType: r.slotType ?? "therapist",
     optionIds: r.optionIds,
     optionNames: r.optionNames,
     totalDurationMin: r.totalDurationMin,

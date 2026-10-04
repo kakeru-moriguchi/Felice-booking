@@ -13,6 +13,9 @@
 /** メニューの分類 */
 export type MenuCategory = "course" | "partial" | "secret";
 
+/** 予約で消費する枠の種類 */
+export type BookingSlotType = "therapist" | "rental";
+
 export type Menu = {
   /** 変更されない ID（予約データに保存されます） */
   id: string;
@@ -22,6 +25,8 @@ export type Menu = {
   description: string;
   /** 分類 */
   category: MenuCategory;
+  /** セラピスト施術枠 / レンタル枠 */
+  slotType: BookingSlotType;
   /** 施術時間（分） */
   durationMin: number;
   /** 料金（円・税込） */
@@ -77,6 +82,8 @@ export type Reservation = {
   menuDurationMin: number;
   /** メニュー単体の料金 */
   menuPrice: number;
+  /** この予約が消費する枠の種類 */
+  slotType: BookingSlotType;
 
   optionIds: string[];
   optionNames: string[];
@@ -172,6 +179,9 @@ export type Settings = {
   /** 予約枠の刻み（分）。30 なら 13:00 / 13:30 / 14:00 … */
   slotIntervalMin: number;
 
+  /** 同じ時間帯に受け付けられる枠数 */
+  slotCapacities: Record<BookingSlotType, number>;
+
   /** 施術前の準備時間（分） */
   bufferBeforeMin: number;
   /** 施術後の片付け時間（分） */
@@ -224,6 +234,10 @@ export type BusyInterval = {
   label?: string;
   /** Google カレンダーのイベント ID（予約変更時に自分自身を除外するために使用） */
   eventId?: string;
+  /** 予約システムが作成したカレンダー予定か */
+  ownReservation?: boolean;
+  /** 予約システム由来の場合の枠種別 */
+  slotType?: BookingSlotType;
 };
 
 /** お客様に返す1件の枠 */

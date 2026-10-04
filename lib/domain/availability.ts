@@ -23,6 +23,7 @@
 
 import type {
   AvailabilityResult,
+  BookingSlotType,
   BusyInterval,
   DayHours,
   Reservation,
@@ -131,6 +132,7 @@ export function collectBusy(
       endMin: timeToMinutes(r.blockEndTime),
       source: "reservation",
       label: r.menuName,
+      slotType: r.slotType ?? "therapist",
     });
   }
 
@@ -162,6 +164,8 @@ export type AvailabilityParams = {
   date: string;
   /** 予約したい施術の合計時間（分・オプション込み） */
   durationMin: number;
+  /** 予約が消費する枠の種類（旧データはセラピスト枠） */
+  slotType?: BookingSlotType;
   settings: Settings;
   /** その日の有効な予約 */
   reservations: Reservation[];
@@ -184,6 +188,7 @@ export function computeAvailability(params: AvailabilityParams): AvailabilityRes
   const {
     date,
     durationMin,
+    slotType = "therapist",
     settings,
     reservations,
     calendarBusy = [],
@@ -238,6 +243,20 @@ export function computeAvailability(params: AvailabilityParams): AvailabilityRes
     excludeReservationId,
   );
 
+  const capacity = Math.max(1, settings.slotCapacities[slotType] ?? 1);
+
+  /*
+    管理者が直接入れたカレンダー予定と受付停止時間は、両方の枠を止めます。
+    予約システム自身が作ったカレンダー予定は、保存済み予約と重複するため
+    ここでは数えず、予約データ側だけで枠数を判定します。
+  */
+  const globalBusy = busy.filter(
+    (b) => b.source === "blocked" || (b.source === "calendar" && !b.ownReservation),
+  );
+  const resourceBusy = busy.filter(
+    (b) => b.source === "reservation" && (b.slotType ?? "therapist") === slotType,
+  );
+
   /* 「今から何分後以降なら予約できるか」（当日のみ影響します） */
   const isToday = date === todayJst();
   const earliestTodayMin = isToday
@@ -266,11 +285,43 @@ export function computeAvailability(params: AvailabilityParams): AvailabilityRes
     const blockStart = start - settings.bufferBeforeMin;
     const blockEnd = treatmentEnd + settings.bufferAfterMin;
 
-    const conflict = busy.some((b) => overlaps(blockStart, blockEnd, b.startMin, b.endMin));
+    const globallyBlocked = globalBusy.some((b) =>
+      overlaps(blockStart, blockEnd, b.startMin, b.endMin),
+    );
+    const resourceFull = reachesCapacity(
+      blockStart,
+      blockEnd,
+      resourceBusy,
+      capacity,
+    );
+    const conflict = globallyBlocked || resourceFull;
     slots.push({ time: minutesToTime(start), available: !conflict });
   }
 
   return { ...base, slots };
+}
+
+/** 新しい予約を加えると、区間内のどこかで枠数を超えるか */
+function reachesCapacity(
+  startMin: number,
+  endMin: number,
+  existing: BusyInterval[],
+  capacity: number,
+): boolean {
+  const points: Array<{ at: number; delta: number }> = [];
+  for (const interval of existing) {
+    const start = Math.max(startMin, interval.startMin);
+    const end = Math.min(endMin, interval.endMin);
+    if (start >= end) continue;
+    points.push({ at: start, delta: 1 }, { at: end, delta: -1 });
+  }
+  points.sort((a, b) => a.at - b.at || a.delta - b.delta);
+  let active = 0;
+  for (const point of points) {
+    active += point.delta;
+    if (active >= capacity) return true;
+  }
+  return false;
 }
 
 /**

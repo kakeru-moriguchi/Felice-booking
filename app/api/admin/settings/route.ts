@@ -81,6 +81,26 @@ export async function PUT(request: Request): Promise<Response> {
       return error(400, "予約枠の刻みは 10 / 15 / 20 / 30 / 60 分から選んでください。", "invalid");
     }
 
+    /* ---- セラピスト枠・レンタル枠の同時受付数 ---- */
+    const rawCapacities =
+      body.slotCapacities && typeof body.slotCapacities === "object"
+        ? (body.slotCapacities as Record<string, unknown>)
+        : current.slotCapacities;
+    const slotCapacities = {
+      therapist: Number(rawCapacities.therapist ?? current.slotCapacities.therapist),
+      rental: Number(rawCapacities.rental ?? current.slotCapacities.rental),
+    };
+    if (
+      !Number.isInteger(slotCapacities.therapist) ||
+      !Number.isInteger(slotCapacities.rental) ||
+      slotCapacities.therapist < 1 ||
+      slotCapacities.therapist > 20 ||
+      slotCapacities.rental < 1 ||
+      slotCapacities.rental > 20
+    ) {
+      return error(400, "枠数は1〜20で入力してください。", "invalid");
+    }
+
     /* ---- 定休日 ---- */
     const regularClosed = Array.isArray(body.regularClosedWeekdays)
       ? [...new Set(body.regularClosedWeekdays.map(Number))].filter(
@@ -181,6 +201,7 @@ export async function PUT(request: Request): Promise<Response> {
       weekdayHours: weekday,
       holidayHours: holiday,
       slotIntervalMin: slotInterval,
+      slotCapacities,
       bufferBeforeMin: bufferBefore,
       bufferAfterMin: bufferAfter,
       regularClosedWeekdays: regularClosed,

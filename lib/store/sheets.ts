@@ -64,6 +64,7 @@ const HEADERS = [
   "作成日時",
   "更新日時",
   "キャンセル日時",
+  "予約枠種別",
 ] as const;
 
 const LAST_COLUMN = columnName(HEADERS.length);
@@ -96,6 +97,7 @@ function toRow(r: Reservation): string[] {
     r.createdAt,
     r.updatedAt,
     r.cancelledAt ?? "",
+    r.slotType ?? "therapist",
   ];
   // 数式インジェクション対策（= や + で始まる入力を無害化）
   return cells.map((c) => sanitizeForSheet(c));
@@ -144,6 +146,7 @@ function fromRow(row: string[]): Reservation | null {
     createdAt: get(22),
     updatedAt: get(23),
     cancelledAt: get(24) || null,
+    slotType: get(25) === "rental" ? "rental" : "therapist",
   };
 }
 
@@ -174,7 +177,10 @@ export class SheetsStore implements DataStore {
     await ensureSheet(env.google.settingsSheetName);
 
     const header = await readRange(`${env.google.sheetName}!A1:${LAST_COLUMN}1`);
-    if (header.length === 0 || (header[0]?.[0] ?? "") !== HEADERS[0]) {
+    if (
+      header.length === 0 ||
+      HEADERS.some((value, index) => (header[0]?.[index] ?? "") !== value)
+    ) {
       await writeRange(`${env.google.sheetName}!A1:${LAST_COLUMN}1`, [[...HEADERS]]);
     }
     this.initialized = true;
@@ -295,6 +301,10 @@ export class SheetsStore implements DataStore {
     }
     const stored = await this.readSetting<Menu[]>(SETTINGS_KEYS.menus);
     const value = (Array.isArray(stored.value) ? stored.value : DEFAULT_MENUS)
+      .map((menu) => ({
+        ...menu,
+        slotType: menu.slotType === "rental" ? "rental" as const : "therapist" as const,
+      }))
       .slice()
       .sort((a, b) => a.order - b.order);
     this.menusCache = this.cacheFor(value, stored.failed);

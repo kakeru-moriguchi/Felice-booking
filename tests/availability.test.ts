@@ -29,6 +29,23 @@ function slot(date: string, duration: number, time: string, s: Settings, reserva
   return result.slots.find((x) => x.time === time);
 }
 
+function resourceSlot(
+  date: string,
+  time: string,
+  s: Settings,
+  reservations: Reservation[],
+  slotType: "therapist" | "rental",
+) {
+  const result = computeAvailability({
+    date,
+    durationMin: 60,
+    slotType,
+    settings: s,
+    reservations,
+  });
+  return result.slots.find((x) => x.time === time);
+}
+
 test("初期の営業時間は 11:00〜23:30（最終受付 22:00）", () => {
   assert.deepEqual(DEFAULT_SETTINGS.weekdayHours, { open: "11:00", lastStart: "22:00", close: "23:30" });
   assert.deepEqual(DEFAULT_SETTINGS.holidayHours, { open: "11:00", lastStart: "22:00", close: "23:30" });
@@ -97,4 +114,40 @@ test("土日祝は「土日祝」の営業時間が使われる", () => {
   assert.deepEqual(dayStatus("2026-11-03", s).hours, s.holidayHours);
   // 2026-11-04（水曜・平日）
   assert.deepEqual(dayStatus("2026-11-04", s).hours, s.weekdayHours);
+});
+
+test("セラピスト枠とレンタル枠は、同じ時間でも別々に予約できる", () => {
+  const date = futureWeekday();
+  const existing = {
+    id: "therapist-1",
+    date,
+    status: "confirmed",
+    slotType: "therapist",
+    blockStartTime: "12:00",
+    blockEndTime: "13:00",
+    menuName: "施術",
+  } as Reservation;
+  const s = settings({ slotCapacities: { therapist: 1, rental: 1 } });
+  assert.equal(resourceSlot(date, "12:00", s, [existing], "therapist")?.available, false);
+  assert.equal(resourceSlot(date, "12:00", s, [existing], "rental")?.available, true);
+});
+
+test("管理画面で設定した枠数までは同じ時間に予約できる", () => {
+  const date = futureWeekday();
+  const existing = {
+    id: "therapist-1",
+    date,
+    status: "confirmed",
+    slotType: "therapist",
+    blockStartTime: "12:00",
+    blockEndTime: "13:00",
+    menuName: "施術",
+  } as Reservation;
+  const s = settings({ slotCapacities: { therapist: 2, rental: 1 } });
+  assert.equal(resourceSlot(date, "12:00", s, [existing], "therapist")?.available, true);
+  assert.equal(
+    resourceSlot(date, "12:00", s, [existing, { ...existing, id: "therapist-2" }], "therapist")
+      ?.available,
+    false,
+  );
 });

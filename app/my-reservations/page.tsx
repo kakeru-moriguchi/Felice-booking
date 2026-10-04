@@ -20,6 +20,7 @@ import { formatDateJa, formatPrice, todayJst } from "@/lib/util/datetime";
 type Reservation = {
   id: string;
   menuName: string;
+  slotType: "therapist" | "rental";
   optionNames: string[];
   date: string;
   startTime: string;
@@ -132,6 +133,9 @@ function ReservationCard({
       </div>
 
       <div className="mt-3 flex flex-col gap-0.5">
+        <p className="text-[0.72rem] tracking-[0.12em] text-sage-700">
+          {reservation.slotType === "rental" ? "レンタル枠" : "セラピスト枠"}
+        </p>
         <p className="text-[0.92rem] text-botanical-700">{reservation.menuName}</p>
         {reservation.optionNames.length > 0 && (
           <p className="text-[0.8rem] text-botanical-500">

@@ -32,6 +32,7 @@ type Menu = {
   name: string;
   durationMin: number;
   price: number;
+  slotType: "therapist" | "rental";
   visible: boolean;
 };
 
@@ -136,7 +137,7 @@ function NewReservationForm() {
         >
           {menus.map((m) => (
             <option key={m.id} value={m.id}>
-              {m.name}（{m.durationMin}分 / {formatPrice(m.price)}）
+              【{m.slotType === "rental" ? "レンタル枠" : "セラピスト枠"}】{m.name}（{m.durationMin}分 / {formatPrice(m.price)}）
               {m.visible ? "" : " ※非表示"}
             </option>
           ))}

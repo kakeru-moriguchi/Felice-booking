@@ -19,6 +19,7 @@ type Reservation = {
   id: string;
   customerName: string;
   menuName: string;
+  slotType: "therapist" | "rental";
   optionNames: string[];
   date: string;
   startTime: string;
@@ -160,6 +161,9 @@ function ReservationList() {
                               手動
                             </span>
                           )}
+                          <span className="shrink-0 rounded-full bg-sage-100 px-2 py-0.5 text-[0.62rem] text-sage-700">
+                            {r.slotType === "rental" ? "レンタル枠" : "セラピスト枠"}
+                          </span>
                           {r.status === "cancelled" && (
                             <span className="shrink-0 rounded-full bg-botanical-100 px-2 py-0.5 text-[0.62rem] text-botanical-500">
                               キャンセル

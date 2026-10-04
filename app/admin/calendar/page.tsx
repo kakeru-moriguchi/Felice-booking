@@ -30,6 +30,7 @@ type Reservation = {
   id: string;
   customerName: string;
   menuName: string;
+  slotType: "therapist" | "rental";
   optionNames: string[];
   startTime: string;
   endTime: string;
@@ -182,7 +183,7 @@ function CalendarView({ googleEnabled }: { googleEnabled: boolean }) {
                           {r.customerName} 様
                         </span>
                         <span className="block truncate text-[0.8rem] text-botanical-500">
-                          {r.menuName}
+                          {r.slotType === "rental" ? "レンタル枠" : "セラピスト枠"} · {r.menuName}
                         </span>
                       </span>
                     </Link>

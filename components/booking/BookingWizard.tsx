@@ -30,7 +30,7 @@ import StepIndicator from "./StepIndicator";
 import TimeSlots from "./TimeSlots";
 import { formatDateJa, formatPrice, timeToMinutes, minutesToTime } from "@/lib/util/datetime";
 import type { Session } from "@/components/SessionGate";
-import { MENU_CATEGORY_LABELS } from "@/lib/domain/defaults";
+import { MENU_CATEGORY_LABELS, SLOT_TYPE_LABELS } from "@/lib/domain/defaults";
 import { salon } from "@/lib/config/salon";
 
 /* ------------------------------------------------------------------
@@ -42,6 +42,7 @@ type Menu = {
   name: string;
   description: string;
   category: "course" | "partial" | "secret";
+  slotType: "therapist" | "rental";
   durationMin: number;
   price: number;
 };
@@ -318,11 +319,9 @@ export default function BookingWizard({ session }: { session: Session }) {
   const hasOptions = config.options.length > 0;
   const nextStep = (current: number) => (current === 1 && !hasOptions ? 3 : current + 1);
 
-  /* 分類が1種類だけなら、見出しは出さずにすっきり見せます */
-  const usedCategories = (["course", "partial", "secret"] as const).filter((c) =>
-    config.menus.some((m) => m.category === c),
+  const usedSlotTypes = (["therapist", "rental"] as const).filter((slotType) =>
+    config.menus.some((m) => (m.slotType ?? "therapist") === slotType),
   );
-  const showCategoryHeading = usedCategories.length > 1;
 
   /* 次へ進めるかどうか */
   const canProceed =
@@ -349,16 +348,36 @@ export default function BookingWizard({ session }: { session: Session }) {
         {/* ============ STEP 1 メニュー ============ */}
         {step === 1 && (
           <Step title="メニューをお選びください" en="Menu">
-            {usedCategories.map((category) => {
-              const items = config.menus.filter((m) => m.category === category);
+            {usedSlotTypes.map((slotType) => {
+              const slotMenus = config.menus.filter(
+                (m) => (m.slotType ?? "therapist") === slotType,
+              );
+              const categories = (["course", "partial", "secret"] as const).filter(
+                (category) => slotMenus.some((m) => m.category === category),
+              );
               return (
-                <div key={category} className="flex flex-col gap-2.5">
-                  {showCategoryHeading && (
-                    <p className="text-[0.78rem] tracking-[0.2em] text-sage-700">
-                      {CATEGORY_LABELS[category]}
+                <section key={slotType} className="flex flex-col gap-3">
+                  <div className="border-b border-botanical-700/20 pb-2">
+                    <p className="text-[0.72rem] tracking-[0.18em] text-sage-700">
+                      RESERVATION TYPE
                     </p>
-                  )}
-                  {items.map((menu) => (
+                    <h3 className="mt-1 text-[1.1rem] text-botanical-800">
+                      {SLOT_TYPE_LABELS[slotType]}
+                    </h3>
+                    <p className="mt-1 text-[0.78rem] leading-relaxed text-botanical-500">
+                      {slotType === "therapist"
+                        ? "施術を受けるメニューはこちらからお選びください。"
+                        : "スペース・設備のレンタルメニューはこちらからお選びください。"}
+                    </p>
+                  </div>
+                  {categories.map((category) => (
+                    <div key={category} className="flex flex-col gap-2.5">
+                      {categories.length > 1 && (
+                        <p className="text-[0.78rem] tracking-[0.2em] text-sage-700">
+                          {CATEGORY_LABELS[category]}
+                        </p>
+                      )}
+                      {slotMenus.filter((m) => m.category === category).map((menu) => (
                     <SelectableCard
                       key={menu.id}
                       selected={draft.menuId === menu.id}
@@ -379,8 +398,10 @@ export default function BookingWizard({ session }: { session: Session }) {
                         {formatPrice(menu.price)}
                       </p>
                     </SelectableCard>
+                      ))}
+                    </div>
                   ))}
-                </div>
+                </section>
               );
             })}
           </Step>
@@ -515,6 +536,9 @@ export default function BookingWizard({ session }: { session: Session }) {
                 <span className="ml-2 text-[0.82rem] text-botanical-500">
                   {selected.menu.durationMin}分
                 </span>
+              </Row>
+              <Row label="予約枠">
+                {SLOT_TYPE_LABELS[selected.menu.slotType ?? "therapist"]}
               </Row>
               {selected.options.length > 0 && (
                 <Row label="オプション">

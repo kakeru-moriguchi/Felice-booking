@@ -227,6 +227,7 @@ export async function getAvailability(
   const result = computeAvailability({
     date: query.date,
     durationMin: priced.totalDurationMin,
+    slotType: priced.menu.slotType ?? "therapist",
     settings,
     reservations,
     calendarBusy: withoutOwnEvent(day?.intervals ?? [], excludeEventId),
@@ -279,6 +280,7 @@ export async function getMonthAvailability(
     const availability = computeAvailability({
       date,
       durationMin: priced.totalDurationMin,
+      slotType: priced.menu.slotType ?? "therapist",
       settings,
       reservations: reservations.filter((r) => r.date === date),
       calendarBusy: day?.intervals ?? [],
@@ -318,6 +320,7 @@ function buildReservation(
     menuName: priced.menu.name,
     menuDurationMin: priced.menu.durationMin,
     menuPrice: priced.menu.price,
+    slotType: priced.menu.slotType ?? "therapist",
     optionIds: priced.options.map((o) => o.id),
     optionNames: priced.options.map((o) => o.name),
     optionPrice: priced.optionPrice,
@@ -352,6 +355,7 @@ async function claimCalendarSlot(
   reservation: Reservation,
   blockStartMin: number,
   blockEndMin: number,
+  capacity: number,
 ): Promise<{ ok: true; eventId: string | null } | { ok: false }> {
   if (!isGoogleEnabled()) return { ok: true, eventId: null };
 
@@ -360,6 +364,7 @@ async function claimCalendarSlot(
     mine = await createCalendarEvent({
       reservationId: reservation.id,
       menuName: reservation.menuName,
+      slotType: reservation.slotType ?? "therapist",
       date: reservation.date,
       blockStartMin,
       blockEndMin,
@@ -386,7 +391,14 @@ async function claimCalendarSlot(
           （ほぼ同時なら「イベント ID が小さい方」が勝つ）
           → 両者が同じ規則で判断するため、必ず片方だけが成立します
     */
-    const mustYield = conflicts.some((c) => !c.isOwn || claimPrecedes(c, mine));
+    const externalConflict = conflicts.some((c) => !c.isOwn);
+    const earlierSameSlot = conflicts.filter(
+      (c) =>
+        c.isOwn &&
+        (c.slotType ?? "therapist") === (reservation.slotType ?? "therapist") &&
+        claimPrecedes(c, mine),
+    ).length;
+    const mustYield = externalConflict || earlierSameSlot >= Math.max(1, capacity);
 
     if (mustYield) {
       await deleteCalendarEvent(eventId).catch((error) =>
@@ -460,7 +472,12 @@ export async function createReservation(
 
     let claimed: { ok: true; eventId: string | null } | { ok: false };
     try {
-      claimed = await claimCalendarSlot(reservation, block.blockStartMin, block.blockEndMin);
+      claimed = await claimCalendarSlot(
+        reservation,
+        block.blockStartMin,
+        block.blockEndMin,
+        settings.slotCapacities[reservation.slotType ?? "therapist"] ?? 1,
+      );
     } catch {
       return fail(
         "unavailable",
@@ -606,6 +623,7 @@ export async function changeReservation(
       menuName: priced.menu.name,
       menuDurationMin: priced.menu.durationMin,
       menuPrice: priced.menu.price,
+      slotType: priced.menu.slotType ?? "therapist",
       optionIds: priced.options.map((o) => o.id),
       optionNames: priced.options.map((o) => o.name),
       optionPrice: priced.optionPrice,
@@ -630,6 +648,7 @@ export async function changeReservation(
           const mine = await updateCalendarEvent(before.googleCalendarEventId, {
             reservationId: after.id,
             menuName: after.menuName,
+            slotType: after.slotType ?? "therapist",
             date: after.date,
             blockStartMin: block.blockStartMin,
             blockEndMin: block.blockEndMin,
@@ -649,13 +668,25 @@ export async function changeReservation(
             （移動した時刻が Google に記録されるため、
               すでに確定済みの相手より先に勝つことはありません）
           */
-          const mustYield = conflicts.some((c) => !c.isOwn || claimPrecedes(c, mine));
+          const externalConflict = conflicts.some((c) => !c.isOwn);
+          const capacity = Math.max(
+            1,
+            settings.slotCapacities[after.slotType ?? "therapist"] ?? 1,
+          );
+          const earlierSameSlot = conflicts.filter(
+            (c) =>
+              c.isOwn &&
+              (c.slotType ?? "therapist") === (after.slotType ?? "therapist") &&
+              claimPrecedes(c, mine),
+          ).length;
+          const mustYield = externalConflict || earlierSameSlot >= capacity;
 
           if (mustYield) {
             /* 元の時間へ戻します */
             await updateCalendarEvent(before.googleCalendarEventId, {
               reservationId: before.id,
               menuName: before.menuName,
+              slotType: before.slotType ?? "therapist",
               date: before.date,
               blockStartMin: timeToMinutes(before.blockStartTime),
               blockEndMin: timeToMinutes(before.blockEndTime),
@@ -672,6 +703,7 @@ export async function changeReservation(
             after,
             block.blockStartMin,
             block.blockEndMin,
+            settings.slotCapacities[after.slotType ?? "therapist"] ?? 1,
           );
           if (!claimed.ok) return fail("conflict", CONFLICT_MESSAGE);
           after.googleCalendarEventId = claimed.eventId;

@@ -9,7 +9,12 @@
  *     自動的にスプレッドシート側へ切り替わります）
  */
 
-import { DEFAULT_SETTINGS, SAMPLE_MENUS, SAMPLE_OPTIONS } from "../domain/defaults";
+import {
+  DEFAULT_SETTINGS,
+  SAMPLE_MENUS,
+  SAMPLE_OPTIONS,
+  withSettingsDefaults,
+} from "../domain/defaults";
 import type { Menu, Option, Reservation, Settings } from "../domain/types";
 import { addDays, todayJst } from "../util/datetime";
 import { newId } from "../util/id";
@@ -100,6 +105,7 @@ function seed(): MemoryDb {
       menuName: menu.name,
       menuDurationMin: menu.durationMin,
       menuPrice: menu.price,
+      slotType: menu.slotType ?? "therapist",
       optionIds: options.map((o) => o.id),
       optionNames: options.map((o) => o.name),
       optionPrice,
@@ -142,12 +148,16 @@ function db(): MemoryDb {
 export class MemoryStore implements DataStore {
   async listReservations(filter?: ReservationFilter): Promise<Reservation[]> {
     const all = [...db().reservations.values()].filter((r) => matchesFilter(r, filter));
-    return sortByDateTime(all).map((r) => structuredClone(r));
+    return sortByDateTime(all).map((r) =>
+      structuredClone({ ...r, slotType: r.slotType ?? "therapist" }),
+    );
   }
 
   async getReservation(id: string): Promise<Reservation | null> {
     const found = db().reservations.get(id);
-    return found ? structuredClone(found) : null;
+    return found
+      ? structuredClone({ ...found, slotType: found.slotType ?? "therapist" })
+      : null;
   }
 
   async createReservation(reservation: Reservation): Promise<void> {
@@ -159,7 +169,7 @@ export class MemoryStore implements DataStore {
   }
 
   async getSettings(): Promise<Settings> {
-    return structuredClone(db().settings);
+    return withSettingsDefaults(structuredClone(db().settings));
   }
 
   async saveSettings(settings: Settings): Promise<void> {
@@ -167,7 +177,12 @@ export class MemoryStore implements DataStore {
   }
 
   async listMenus(): Promise<Menu[]> {
-    return structuredClone(db().menus).sort((a, b) => a.order - b.order);
+    return structuredClone(db().menus)
+      .map((menu) => ({
+        ...menu,
+        slotType: menu.slotType === "rental" ? "rental" as const : "therapist" as const,
+      }))
+      .sort((a, b) => a.order - b.order);
   }
 
   async saveMenus(menus: Menu[]): Promise<void> {

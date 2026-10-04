@@ -17,7 +17,7 @@
 
 import { env } from "../config/env";
 import { calendarEventTitle, salon } from "../config/salon";
-import type { BusyInterval } from "../domain/types";
+import type { BookingSlotType, BusyInterval } from "../domain/types";
 import { addDays, toJstIso } from "../util/datetime";
 import { googleFetch } from "./auth";
 
@@ -117,6 +117,8 @@ export async function fetchCalendarBusy(
     const end = toJstParts(event.end.dateTime);
 
     const isOwn = event.extendedProperties?.private?.app === APP_TAG;
+    const slotType =
+      event.extendedProperties?.private?.slotType === "rental" ? "rental" : "therapist";
     const label = isOwn ? "予約" : event.summary?.trim() || "予定あり";
 
     if (start.date === end.date) {
@@ -126,6 +128,8 @@ export async function fetchCalendarBusy(
         source: "calendar",
         label,
         eventId: event.id,
+        ownReservation: isOwn,
+        slotType,
       });
     } else {
       // 日をまたぐ予定は、日付ごとに切り分けます
@@ -138,6 +142,8 @@ export async function fetchCalendarBusy(
           source: "calendar",
           label,
           eventId: event.id,
+          ownReservation: isOwn,
+          slotType,
         });
         date = addDays(date, 1);
         from = 0;
@@ -149,6 +155,8 @@ export async function fetchCalendarBusy(
           source: "calendar",
           label,
           eventId: event.id,
+          ownReservation: isOwn,
+          slotType,
         });
       }
     }
@@ -171,6 +179,7 @@ export async function fetchCalendarBusyForDate(date: string): Promise<CalendarDa
 export type CalendarEventInput = {
   reservationId: string;
   menuName: string;
+  slotType: BookingSlotType;
   date: string;
   /** 準備時間を含む枠（0:00 からの分） */
   blockStartMin: number;
@@ -190,7 +199,11 @@ function eventBody(input: CalendarEventInput) {
     end: { dateTime: toJstIso(input.date, input.blockEndMin), timeZone: "Asia/Tokyo" },
     // 非公開の目印。予約システムが作ったイベントを見分けるために使います
     extendedProperties: {
-      private: { app: APP_TAG, reservationId: input.reservationId },
+      private: {
+        app: APP_TAG,
+        reservationId: input.reservationId,
+        slotType: input.slotType,
+      },
     },
     // 通知は管理者の好みで設定できるよう、既定の通知に任せます
     reminders: { useDefault: true },
@@ -240,6 +253,8 @@ export async function deleteCalendarEvent(eventId: string): Promise<void> {
 export type ConflictingEvent = ClaimedEvent & {
   /** 予約システムが作ったイベントかどうか */
   isOwn: boolean;
+  /** 予約システム由来の予定が消費する枠 */
+  slotType: BookingSlotType | null;
 };
 
 /**
@@ -302,7 +317,12 @@ export async function findConflicts(
 
     /* 終日予定はその日全体を塞ぎます */
     if (event.start?.date && event.end?.date) {
-      conflicts.push({ id: event.id, claimedAt: event.updated ?? "", isOwn: false });
+      conflicts.push({
+        id: event.id,
+        claimedAt: event.updated ?? "",
+        isOwn: false,
+        slotType: null,
+      });
       continue;
     }
 
@@ -323,10 +343,16 @@ export async function findConflicts(
 
     // 境界が接しているだけ（前の施術の終了 = 次の開始）は競合としません
     if (eventStart < endMin && startMin < eventEnd) {
+      const isOwn = event.extendedProperties?.private?.app === APP_TAG;
       conflicts.push({
         id: event.id,
         claimedAt: event.updated ?? "",
-        isOwn: event.extendedProperties?.private?.app === APP_TAG,
+        isOwn,
+        slotType: isOwn
+          ? event.extendedProperties?.private?.slotType === "rental"
+            ? "rental"
+            : "therapist"
+          : null,
       });
     }
   }

@@ -13,13 +13,14 @@
  */
 
 import { error, guardMutation, handle, ok, requireAdmin } from "@/lib/api/http";
-import type { Menu, MenuCategory } from "@/lib/domain/types";
+import type { BookingSlotType, Menu, MenuCategory } from "@/lib/domain/types";
 import { getStore } from "@/lib/store";
 import { cleanLine, cleanText, readJson, validateId } from "@/lib/security/validation";
 
 export const dynamic = "force-dynamic";
 
 const CATEGORIES: MenuCategory[] = ["course", "partial", "secret"];
+const SLOT_TYPES: BookingSlotType[] = ["therapist", "rental"];
 
 export async function GET(): Promise<Response> {
   return handle("admin.menus.get", async () => {
@@ -75,12 +76,16 @@ export async function PUT(request: Request): Promise<Response> {
       const category = CATEGORIES.includes(item.category as MenuCategory)
         ? (item.category as MenuCategory)
         : "course";
+      const slotType = SLOT_TYPES.includes(item.slotType as BookingSlotType)
+        ? (item.slotType as BookingSlotType)
+        : "therapist";
 
       menus.push({
         id: id.value,
         name,
         description: cleanText(item.description, 200),
         category,
+        slotType,
         durationMin,
         price,
         order: Number.isFinite(Number(item.order)) ? Number(item.order) : menus.length * 10,
